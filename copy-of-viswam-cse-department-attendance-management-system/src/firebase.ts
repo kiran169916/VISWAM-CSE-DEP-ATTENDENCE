@@ -1,20 +1,10 @@
-import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore, getDocFromServer, doc } from 'firebase/firestore';
-import firebaseConfig from '../firebase-applet-config.json';
-
-const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
-
-// Test connection
-async function testConnection() {
-  try {
-    await getDocFromServer(doc(db, 'test', 'connection'));
-  } catch (error) {
-    if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.error("Please check your Firebase configuration.");
-    }
-  }
-}
-testConnection();
+import { intializeApp } from "firebase/app";
+const firebaseConfig = {
+  apiKey: "AIzaSyCIS89ZY3K3R427gq4HoSr1tRQ7iBHbD44",
+  authDomain: "gen-lang-client-0747068951.firebaseapp.com",
+  projectId: "gen-lang-client-0747068951",
+  storageBucket: "gen-lang-client-0747068951.firebasestorage.app",
+  messagingSenderId: "797891182927",
+  appId: "1:797891182927:web:8e2121ed567713702fc53a"
+};
+Are you using npm and a bundler like w
