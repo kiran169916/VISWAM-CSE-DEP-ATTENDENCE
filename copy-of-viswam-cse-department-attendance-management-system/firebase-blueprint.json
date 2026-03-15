@@ -1,0 +1,54 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "A user of the system (HOD, Faculty, or Student).",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "role": { "type": "string", "enum": ["HOD", "Faculty", "Student"] }
+      },
+      "required": ["name", "email", "role"]
+    },
+    "Faculty": {
+      "title": "Faculty",
+      "description": "A faculty member.",
+      "type": "object",
+      "properties": {
+        "faculty_name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "subject_assigned": { "type": "string" }
+      },
+      "required": ["faculty_name", "email"]
+    },
+    "Student": {
+      "title": "Student",
+      "description": "A student.",
+      "type": "object",
+      "properties": {
+        "student_name": { "type": "string" },
+        "roll_number": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "department": { "type": "string" },
+        "year": { "type": "number" },
+        "section": { "type": "string" }
+      },
+      "required": ["student_name", "roll_number", "email", "department", "year", "section"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Stores user profiles."
+    },
+    "/faculty/{facultyId}": {
+      "schema": { "$ref": "#/entities/Faculty" },
+      "description": "Stores faculty details."
+    },
+    "/students/{studentId}": {
+      "schema": { "$ref": "#/entities/Student" },
+      "description": "Stores student details."
+    }
+  }
+}

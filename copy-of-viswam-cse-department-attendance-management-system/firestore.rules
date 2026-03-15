@@ -1,0 +1,125 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: userId (from Firebase Auth)
+    // Fields:
+    //   - name: string (required)
+    //   - email: string (required)
+    //   - role: string (required, 'HOD', 'Faculty', 'Student')
+    //
+    // Collection: faculty
+    // Document ID: auto-generated or email
+    // Fields:
+    //   - faculty_name: string (required)
+    //   - email: string (required)
+    //   - subject_assigned: string (optional)
+    //
+    // Collection: students
+    // Document ID: auto-generated or email
+    // Fields:
+    //   - student_name: string (required)
+    //   - roll_number: string (required)
+    //   - email: string (required)
+    //   - department: string (required)
+    //   - year: number (required)
+    //   - section: string (required)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (
+          (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'HOD') ||
+          (request.auth.token.email == "kiran731678@gmail.com" && request.auth.token.email_verified == true)
+        );
+    }
+
+    function isFaculty() {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Faculty';
+    }
+
+    function isStudent() {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Student';
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isValidEmail(email) {
+      return email is string &&
+        email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['name', 'email', 'role']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             isValidEmail(data.email) &&
+             data.role in ['HOD', 'Faculty', 'Student'];
+    }
+
+    function isValidFaculty(data) {
+      return data.keys().hasAll(['faculty_name', 'email']) &&
+             data.faculty_name is string && data.faculty_name.size() > 0 && data.faculty_name.size() < 100 &&
+             isValidEmail(data.email) &&
+             (!('subject_assigned' in data) || (data.subject_assigned is string && data.subject_assigned.size() < 100));
+    }
+
+    function isValidStudent(data) {
+      return data.keys().hasAll(['student_name', 'roll_number', 'email', 'department', 'year', 'section']) &&
+             data.student_name is string && data.student_name.size() > 0 && data.student_name.size() < 100 &&
+             data.roll_number is string && data.roll_number.size() > 0 && data.roll_number.size() < 50 &&
+             isValidEmail(data.email) &&
+             data.department is string && data.department.size() > 0 && data.department.size() < 50 &&
+             data.year is number && data.year > 0 && data.year <= 5 &&
+             data.section is string && data.section.size() > 0 && data.section.size() < 10;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isAuthenticated() && isValidUser(request.resource.data) &&
+                    ((isOwner(userId) && request.resource.data.role != 'HOD') || isAdmin());
+      allow update: if isAuthenticated() && isValidUser(request.resource.data) &&
+                    ((isOwner(userId) && request.resource.data.role == resource.data.role) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /faculty/{facultyId} {
+      allow read: if isAuthenticated(); // Needed for login checks
+      allow create: if isAdmin() && isValidFaculty(request.resource.data);
+      allow update: if isAdmin() && isValidFaculty(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /students/{studentId} {
+      allow read: if isAuthenticated(); // Needed for login checks and faculty viewing
+      allow create: if (isAdmin() || isFaculty()) && isValidStudent(request.resource.data);
+      allow update: if (isAdmin() || isFaculty()) && isValidStudent(request.resource.data);
+      allow delete: if isAdmin() || isFaculty();
+    }
+  }
+}
